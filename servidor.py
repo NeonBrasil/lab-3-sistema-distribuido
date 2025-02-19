@@ -2,9 +2,12 @@ import zmq
 
 context = zmq.Context()
 socket = context.socket(zmq.REP)
-socket.bind("tcp://*:5555")
+socket.connect("tcp://localhost:5556") # conecta no broker local
+msg_count = 0
 
 while True:
+    print(f"Mensagem {msg_count}:", end=" ")
     message = socket.recv()
-    print(f"Mensagem recebida: {message}")
     socket.send_string("World")
+    print(f"{message}")
+    msg_count += 1

@@ -1,4 +1,5 @@
 import zmq
+import time
 
 context = zmq.Context()
 poller = zmq.Poller()
@@ -12,6 +13,15 @@ server_socket = context.socket(zmq.DEALER)
 server_socket.bind("tcp://*:5556")
 poller.register(server_socket, zmq.POLLIN)
 server_count = 0
+
+# Socket para receber heartbeats
+heartbeat_socket = context.socket(zmq.PULL)
+heartbeat_socket.bind("tcp://*:5557")
+poller.register(heartbeat_socket, zmq.POLLIN)
+
+last_heartbeat = time.time()
+heartbeat_timeout = 10  # Timeout de 10 segundos para heartbeats
+
 while True:
     socks = dict(poller.poll())
 
@@ -35,3 +45,13 @@ while True:
             client_socket.send(message)
         print(f"Server messages: {server_count}")
 
+    if socks.get(heartbeat_socket) == zmq.POLLIN:
+        heartbeat = heartbeat_socket.recv()
+        if heartbeat == b"HEARTBEAT":
+            last_heartbeat = time.time()
+            print("Received heartbeat from server")
+
+    # Verificar se o heartbeat foi recebido dentro do timeout
+    if time.time() - last_heartbeat > heartbeat_timeout:
+        print("Server heartbeat timeout")
+        # Aqui você pode adicionar lógica para lidar com a falha do servidor
